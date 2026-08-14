@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jarvis Algo · Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+        <h2>🔐 Welcome Back</h2>
+        <p>Login to your Jarvis Algo account</p>
+        <input type="text" id="loginUser" placeholder="Username" value="Rahul Kumar" />
+        <input type="password" id="loginPass" placeholder="Password" value="password" />
+        <button class="btn btn-primary" onclick="handleLogin()">Log In</button>
+    </div>
+</div>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <div class="logo">⚡ <span>Jarvis</span>Algo</div>
+    <ul class="nav-links">
+        <li><a class="active" data-page="screener">🔍 Screener</a></li>
+        <li><a data-page="portfolio">💰 Portfolio</a></li>
+        <li><a data-page="stocks">📊 All Stocks</a></li>
+    </ul>
+    <div class="nav-right">
+        <span class="status"><span class="dot"></span> Live</span>
+        <button class="settings-toggle" onclick="openSettings()" title="Settings">⚙️</button>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌓</button>
+        <div class="avatar" id="avatarBtn" onclick="toggleAvatarMenu()">
+            RK
+            <div class="avatar-menu" id="avatarMenu">
+                <button onclick="handleLogout()">🚪 Logout</button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="container">
+
+    <!-- SCREENER -->
+    <div id="page-screener" class="page active">
+        <div class="stats-row">
+            <div class="stat-box"><div class="label">📊 Shortlisted</div><div class="value" id="s1">51</div><div class="sub green">↑ 6 new</div></div>
+            <div class="stat-box"><div class="label">⚡ Active Trades</div><div class="value" id="s2">23</div><div class="sub green">↑ 3 this hour</div></div>
+            <div class="stat-box"><div class="label">🏆 Win Rate</div><div class="value" id="s3">64%</div><div class="sub green">↑ 4.2%</div></div>
+            <div class="stat-box"><div class="label">💰 P&L Today</div><div class="value" style="color:var(--color-success);" id="s4">+₹48,448</div><div class="sub green">↑ +2.3%</div></div>
+        </div>
+
+        <div class="panel-glass">
+            <div class="panel-head">
+                <h3>🔍 Stock Screener</h3>
+                <div class="screener-controls">
+                    <label>Strategy:</label>
+                    <select id="strategySelect" class="strategy-select" onchange="onStrategyChange()">
+                        <option value="advanceorb">📈 Advance ORB</option>
+                        <option value="smartmoney">💰 SmartMoney</option>
+                        <option value="bigplayers">🏢 Big Players</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="runScreener()">🔄 Run</button>
+                    <div class="toggle-wrapper">
+                        <span class="toggle-label">Auto Buy</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="autoBuyToggle" onchange="toggleAutoBuy()" />
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-status" id="toggleStatus">OFF</span>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="budget-row">
+                    <div class="budget-item">
+                        <label>💰 Budget</label>
+                        <input type="number" id="budgetInput" value="80000" onchange="updateBudget()" />
+                    </div>
+                    <div class="budget-item">
+                        <label>📊 Parts</label>
+                        <input type="number" id="partsInput" value="3" min="1" onchange="updateBudget()" />
+                    </div>
+                    <div class="budget-item">
+                        <label>⏱ TF</label>
+                        <select id="tfSelect" onchange="updateBudget()">
+                            <option value="5">5 min</option>
+                            <option value="15">15 min</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table class="table-modern">
+                        <thead id="screenerHead"><tr><th>Symbol</th><th>Price</th><th>CHG%</th><th>Volume</th><th>Breakout</th><th>Qty</th><th>Action</th></tr></thead>
+                        <tbody id="screenerBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-glass">
+            <div class="panel-head"><h3>📈 Recent Trades</h3></div>
+            <div class="panel-body table-wrap" id="recentTrades"></div>
+        </div>
+    </div>
+
+    <!-- PORTFOLIO -->
+    <div id="page-portfolio" class="page">
+        <h2 class="section-title">💰 Portfolio</h2>
+        <div class="stats-row" id="portfolioStats"></div>
+        <div class="panel-glass">
+            <div class="panel-head"><h3>📊 Holdings</h3></div>
+            <div class="panel-body table-wrap" id="holdingsTable"></div>
+        </div>
+    </div>
+
+    <!-- ALL STOCKS -->
+    <div id="page-stocks" class="page">
+        <div class="page-header">
+            <h2>📊 All Stocks</h2>
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                <span id="stocksCount" style="font-size:14px;color:var(--text-muted);">Loading...</span>
+                <span id="stocksTimestamp" style="font-size:12px;color:var(--text-muted);"></span>
+                <button class="btn btn-primary" onclick="loadAllStocks()">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <div class="panel-glass">
+            <div class="panel-head">
+                <h3>📋 Market Data</h3>
+                <span id="stocksRowCount" style="font-size:13px;color:var(--text-muted);">0 rows</span>
+            </div>
+            <div class="panel-body table-wrap" id="stocksTableBody">
+                <div class="loading-spinner" style="text-align:center;padding:40px;color:var(--text-muted);">
+                    <div class="spinner" style="display:inline-block;"></div>
+                    <p style="margin-top:12px;">Loading stocks from TradingView...</p>
+                </div>
+            </div>
+            <div class="panel-footer">
+                <span>Data Source: TradingView Scanner</span>
+                <span id="stocksFooterTimestamp">-</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- SETTINGS POPUP -->
+<div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+        <h2>⚙️ Settings</h2>
+        <div class="form-group">
+            <label>Select Broker</label>
+            <select id="brokerSelect" onchange="toggleBrokerFields()">
+                <option value="dhan">Dhan</option>
+                <option value="zerodha">Zerodha</option>
+                <option value="fyers">Fyers</option>
+                <option value="upstox">Upstox</option>
+                <option value="angelone">Angel One</option>
+            </select>
+        </div>
+        <div id="dhanFields" class="broker-fields">
+            <div class="field-group field-full"><label>Client ID</label><input type="text" placeholder="Client ID" /></div>
+            <div class="field-group"><label>TOTP</label><input type="text" placeholder="TOTP secret" /></div>
+            <div class="field-group"><label>PIN</label><input type="password" placeholder="Trading PIN" /></div>
+            <div class="field-group field-full"><label>Secret Key</label><input type="password" placeholder="API Secret" /></div>
+        </div>
+        <div id="otherBrokerFields"><p style="color:var(--text-muted);">🔑 Enter credentials for selected broker.</p></div>
+        <div class="modal-actions">
+            <button class="btn btn-outline" onclick="closeSettings()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveSettings()">💾 Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast">
+    <button class="toast-close" onclick="hideToast()">×</button>
+    <div class="toast-title" id="toastTitle">✅ Success</div>
+    <div id="toastMessage">Action completed</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- JAVASCRIPT -->
+<!-- ================================================================ -->
+<script>
+    // ─── STATE ──────────────────────────────────────────
+    const STRATEGIES = {
+        advanceorb: {
+            name:'Advance ORB', icon:'📈',
+            columns:['Symbol','Price','CHG%','Volume','Breakout'],
+            data:[
+                {symbol:'NEPHROPLUS',price:'67.65',change:'+7.37%',volume:'379K',breakout:'Waiting'},
+                {symbol:'PANGJL',price:'2',change:'+7.37%',volume:'379K',breakout:'Waiting'},
+                {symbol:'SEDEMAC',price:'63.60',change:'+5.97%',volume:'2.5M',breakout:'Active'},
+                {symbol:'ELIGIBL',price:'2775.20',change:'+3.74%',volume:'156K',breakout:'Waiting'},
+                {symbol:'APOLLO',price:'40.94',change:'+3.67%',volume:'13.7M',breakout:'Active'},
+            ]
+        },
+        smartmoney: {
+            name:'SmartMoney', icon:'💰',
+            columns:['Symbol','Price','CHG%','Volume','Signal'],
+            data:[
+                {symbol:'CYIENTDLM',price:'698.15',change:'+12.06%',volume:'12.9M',signal:'9:45'},
+                {symbol:'LOTUSDEV',price:'162.70',change:'+9.81%',volume:'18.4M',signal:'9:40'},
+                {symbol:'BLUESTONE',price:'776.05',change:'+6.51%',volume:'29.5M',signal:'9:50'},
+            ]
+        },
+        bigplayers: {
+            name:'Big Players', icon:'🏢',
+            columns:['Symbol','Price','CHG%','Breakout','Support'],
+            data:[
+                {symbol:'RELIANCE',price:'2856.40',change:'+2.1%',breakout:'Active',support:'2800'},
+                {symbol:'TCS',price:'3920.00',change:'+0.8%',breakout:'Waiting',support:'3850'},
+                {symbol:'INFY',price:'1545.00',change:'+3.4%',breakout:'Active',support:'1500'},
+                {symbol:'HDFC',price:'1680.00',change:'-1.2%',breakout:'Waiting',support:'1650'},
+            ]
+        }
+    };
+
+    let autoBuy = false;
+    let budget = 80000;
+    let parts = 3;
+    let isLoggedIn = true;
+    const user = { name: 'Rahul Kumar' };
+    let stocksRefreshInterval = null;
+    let allStocksData = null;
+
+    // ─── LOGIN ───────────────────────────────────────────
+    document.getElementById('loginOverlay').classList.remove('show');
+
+    function handleLogin() {
+        const name = document.getElementById('loginUser').value.trim() || 'User';
+        user.name = name;
+        document.querySelector('.avatar').childNodes[0].textContent = name.split(' ').map(w=>w[0]).join('').toUpperCase();
+        document.getElementById('loginOverlay').classList.remove('show');
+        isLoggedIn = true;
+        showToast('👋 Welcome', name);
+    }
+
+    function handleLogout() {
+        document.getElementById('avatarMenu').classList.remove('show');
+        isLoggedIn = false;
+        document.getElementById('loginOverlay').classList.add('show');
+        document.getElementById('loginUser').value = user.name;
+        showToast('🚪 Logged out', 'See you soon');
+    }
+
+    // ─── BUDGET ──────────────────────────────────────────
+    function updateBudget() {
+        budget = parseFloat(document.getElementById('budgetInput').value) || 0;
+        parts = parseInt(document.getElementById('partsInput').value) || 1;
+        onStrategyChange();
+    }
+
+    // ─── NAVIGATION ──────────────────────────────────────
+    document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const pageId = this.dataset.page;
+
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+            this.classList.add('active');
+
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+
+            if (pageId === 'portfolio') loadPortfolio();
+            else if (pageId === 'screener') loadScreener();
+            else if (pageId === 'stocks') {
+                loadAllStocks();
+                startStocksAutoRefresh();
+            }
+        });
+    });
+
+    // ─── SCREENER ───────────────────────────────────────
+    function loadScreener() {
+        onStrategyChange();
+        loadHomeStats();
+        loadRecentTrades();
+    }
+
+    function onStrategyChange() {
+        const id = document.getElementById('strategySelect').value;
+        const s = STRATEGIES[id];
+        if (!s) return;
+        const per = parts > 0 ? Math.floor(budget / parts) : 0;
+
+        const thead = document.querySelector('#screenerHead tr');
+        const cols = [...s.columns, 'Qty', 'Action'];
+        thead.innerHTML = cols.map(c => `<th>${c}</th>`).join('');
+
+        const tbody = document.getElementById('screenerBody');
+        tbody.innerHTML = s.data.map(row => {
+            const vals = s.columns.map(c => {
+                const key = c.toLowerCase();
+                return row[key] || row[c] || '';
+            });
+            return `<tr>${vals.map(v => `<td>${v}</td>`).join('')}<td>${per}</td><td><button class="btn-place-order btn-sm" onclick="placeOrder('${row.symbol}')" ${autoBuy?'disabled':''}>Place</button></td></tr>`;
+        }).join('');
+    }
+
+    function runScreener() {
+        const btn = event.target;
+        const orig = btn.textContent;
+        btn.innerHTML = '<span class="spinner"></span>';
+        btn.disabled = true;
+        setTimeout(() => { onStrategyChange(); showToast('✅ Screener', 'Stocks updated'); btn.innerHTML = orig; btn.disabled = false; }, 500);
+    }
+
+    function toggleAutoBuy() {
+        autoBuy = document.getElementById('autoBuyToggle').checked;
+        document.getElementById('toggleStatus').textContent = autoBuy ? 'ON' : 'OFF';
+        document.getElementById('toggleStatus').classList.toggle('active', autoBuy);
+        showToast(autoBuy ? '🤖 Auto Buy ON' : '👤 Manual Mode', autoBuy ? 'Auto-buy enabled' : 'Click Place Order to buy');
+        onStrategyChange();
+    }
+
+    function placeOrder(symbol) {
+        if (autoBuy) { showToast('⚠️ Auto Buy ON', 'Disable to place manual orders'); return; }
+        const per = Math.floor(budget / parts);
+        showToast('📝 Order Placed', `${symbol} (qty: ${per})`);
+    }
+
+    function loadHomeStats() {
+        document.getElementById('s1').textContent = Math.floor(45 + Math.random() * 15);
+        document.getElementById('s2').textContent = Math.floor(20 + Math.random() * 8);
+        document.getElementById('s3').textContent = Math.floor(60 + Math.random() * 10) + '%';
+        document.getElementById('s4').textContent = `+₹${Math.floor(40000 + Math.random() * 20000)}`;
+    }
+
+    function loadRecentTrades() {
+        const trades = [{ symbol: 'RELIANCE', type: 'BUY', qty: 10, price: '₹2,856', pnl: '+₹1,240' }, { symbol: 'TCS', type: 'SELL', qty: 5, price: '₹3,920', pnl: '-₹320' }, { symbol: 'INFY', type: 'BUY', qty: 15, price: '₹1,545', pnl: '+₹2,100' }];
+        document.getElementById('recentTrades').innerHTML = `
+            <table class="table-modern">
+                <thead><tr><th>Symbol</th><th>Type</th><th>Qty</th><th>Price</th><th>P&L</th></tr></thead>
+                <tbody>${trades.map(t => `
+                    <tr>
+                        <td><strong>${t.symbol}</strong></td>
+                        <td style="color:${t.type === 'BUY' ? 'var(--color-success)' : 'var(--color-danger)'};font-weight:600;">${t.type}</td>
+                        <td>${t.qty}</td>
+                        <td>${t.price}</td>
+                        <td style="color:${t.pnl.includes('+') ? 'var(--color-success)' : 'var(--color-danger)'};font-weight:600;">${t.pnl}</td>
+                    </tr>
+                `).join('')}</tbody>
+            </table>
+        `;
+    }
+
+    // ─── PORTFOLIO ──────────────────────────────────────
+    function loadPortfolio() {
+        const holdings = [{ symbol: 'RELIANCE', qty: 10, avg: 2810, current: 2856, pnl: '+₹460' }, { symbol: 'TCS', qty: 5, avg: 3890, current: 3920, pnl: '+₹150' }, { symbol: 'INFY', qty: 15, avg: 1520, current: 1545, pnl: '+₹375' }, { symbol: 'HDFC', qty: 8, avg: 1700, current: 1680, pnl: '-₹160' }];
+        const total = holdings.reduce((s, h) => s + h.current * h.qty, 0);
+        const invested = holdings.reduce((s, h) => s + h.avg * h.qty, 0);
+        const pnl = total - invested;
+        document.getElementById('portfolioStats').innerHTML = `
+            <div class="stat-box"><div class="label">💰 Total Value</div><div class="value">₹${total.toLocaleString()}</div><div class="sub ${pnl >= 0 ? 'green' : 'red'}">${pnl >= 0 ? '↑' : '↓'} ₹${Math.abs(pnl).toLocaleString()}</div></div>
+            <div class="stat-box"><div class="label">📊 Invested</div><div class="value">₹${invested.toLocaleString()}</div><div class="sub" style="color:var(--text-muted);">${Math.round(invested/total*100)}% allocated</div></div>
+            <div class="stat-box"><div class="label">💵 Cash</div><div class="value">₹${Math.round(total*0.32).toLocaleString()}</div><div class="sub" style="color:var(--text-muted);">32% free</div></div>
+            <div class="stat-box"><div class="label">📈 Total P&L</div><div class="value" style="color:${pnl >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${pnl >= 0 ? '+' : ''}₹${pnl.toLocaleString()}</div><div class="sub ${pnl >= 0 ? 'green' : 'red'}">${pnl >= 0 ? '↑' : '↓'} ${Math.round(pnl/invested*100)}%</div></div>
+        `;
+        document.getElementById('holdingsTable').innerHTML = `
+            <table class="table-modern">
+                <thead><tr><th>Symbol</th><th>Qty</th><th>Avg</th><th>Current</th><th>P&L</th><th>Action</th></tr></thead>
+                <tbody>${holdings.map(h => {
+                    const p = (h.current - h.avg) * h.qty;
+                    return `<tr><td><strong>${h.symbol}</strong></td><td>${h.qty}</td><td>₹${h.avg}</td><td>₹${h.current}</td><td style="color:${p >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};font-weight:600;">${p >= 0 ? '+' : ''}₹${p}</td><td><button class="btn btn-danger btn-sm" onclick="showToast('📤 Sold','${h.symbol} sold')">Sell</button></td></tr>`;
+                }).join('')}</tbody>
+            </table>
+        `;
+    }
+
+    // ─── ALL STOCKS ──────────────────────────────────────
+    async function loadAllStocks() {
+        const tbody = document.getElementById('stocksTableBody');
+
+        tbody.innerHTML = `
+            <div style="text-align:center;padding:40px;color:var(--text-muted);">
+                <div class="spinner" style="display:inline-block;"></div>
+                <p style="margin-top:12px;">Loading stocks...</p>
+            </div>
+        `;
+
+        try {
+            const response = await fetch('/api/stocks/all');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            allStocksData = data;
+
+            document.getElementById('stocksCount').textContent = `📦 ${data.count} stocks`;
+            document.getElementById('stocksRowCount').textContent = `${data.count} rows`;
+
+            const timeStr = new Date(data.timestamp).toLocaleString();
+            document.getElementById('stocksTimestamp').textContent = `🕐 ${timeStr}`;
+            document.getElementById('stocksFooterTimestamp').textContent = `Last updated: ${timeStr}`;
+
+            renderStocksTable(data.data);
+
+        } catch (error) {
+            console.error('Error loading stocks:', error);
+            tbody.innerHTML = `
+                <div style="text-align:center;padding:40px;color:var(--color-danger);">
+                    <p>❌ Error loading data</p>
+                    <p style="font-size:13px;margin-top:8px;">${error.message}</p>
+                    <button onclick="loadAllStocks()" style="margin-top:12px;padding:8px 20px;background:#6C5CE7;border:none;border-radius:8px;color:#fff;cursor:pointer;">Retry</button>
+                </div>
+            `;
+        }
+    }
+
+    function renderStocksTable(stocks) {
+        const tbody = document.getElementById('stocksTableBody');
+
+        if (!stocks || stocks.length === 0) {
+            tbody.innerHTML = `
+                <div style="text-align:center;padding:40px;color:var(--text-muted);">
+                    <p>📭 No stocks match the current filters</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = `
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th>Stock Name</th>
+                        <th style="text-align:right;">Price</th>
+                        <th style="text-align:right;">Change %</th>
+                        <th style="text-align:right;">Volume</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        stocks.forEach(s => {
+            const change = s.change || 0;
+            const isPositive = change >= 0;
+
+            html += `
+                <tr>
+                    <td><strong>${s.name}</strong></td>
+                    <td style="text-align:right;">₹${(s.price || 0).toFixed(2)}</td>
+                    <td style="text-align:right;color:${isPositive ? 'var(--color-success)' : 'var(--color-danger)'};font-weight:600;">
+                        ${isPositive ? '+' : ''}${change.toFixed(2)}%
+                    </td>
+                    <td style="text-align:right;">${formatVolume(s.volume || 0)}</td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+        tbody.innerHTML = html;
+    }
+
+    function formatVolume(vol) {
+        if (!vol) return '0';
+        if (vol >= 1e7) return (vol / 1e7).toFixed(1) + ' Cr';
+        if (vol >= 1e5) return (vol / 1e5).toFixed(1) + ' L';
+        if (vol >= 1e3) return (vol / 1e3).toFixed(1) + ' K';
+        return vol.toString();
+    }
+
+    function startStocksAutoRefresh() {
+        if (stocksRefreshInterval) {
+            clearInterval(stocksRefreshInterval);
+        }
+        stocksRefreshInterval = setInterval(() => {
+            const stocksPage = document.getElementById('page-stocks');
+            if (stocksPage && stocksPage.classList.contains('active')) {
+                loadAllStocks();
+            }
+        }, 300000);
+    }
+
+    // ─── THEME ──────────────────────────────────────────
+    function toggleTheme() {
+        document.body.classList.toggle('dark');
+    }
+
+    // ─── SETTINGS ──────────────────────────────────────
+    function openSettings() {
+        document.getElementById('settingsModal').classList.add('show');
+    }
+
+    function closeSettings() {
+        document.getElementById('settingsModal').classList.remove('show');
+    }
+
+    function saveSettings() {
+        showToast('💾 Saved', 'Settings updated');
+        closeSettings();
+    }
+
+    document.getElementById('settingsModal').addEventListener('click', function(e) {
+        if (e.target === this) closeSettings();
+    });
+
+    function toggleBrokerFields() {
+        const b = document.getElementById('brokerSelect').value;
+        const dhan = document.getElementById('dhanFields');
+        const other = document.getElementById('otherBrokerFields');
+        if (b === 'dhan') {
+            dhan.style.display = 'grid';
+            other.style.display = 'none';
+        } else if (b) {
+            dhan.style.display = 'none';
+            other.style.display = 'block';
+        } else {
+            dhan.style.display = 'none';
+            other.style.display = 'none';
+        }
+    }
+
+    // ─── AVATAR MENU ────────────────────────────────────
+    function toggleAvatarMenu() {
+        document.getElementById('avatarMenu').classList.toggle('show');
+    }
+    document.addEventListener('click', function(e) {
+        const avatar = document.querySelector('.avatar');
+        if (!avatar.contains(e.target)) {
+            document.getElementById('avatarMenu').classList.remove('show');
+        }
+    });
+
+    // ─── TOAST ──────────────────────────────────────────
+    let toastTimeout;
+
+    function showToast(title, msg) {
+        document.getElementById('toastTitle').textContent = title || '✅';
+        document.getElementById('toastMessage').textContent = msg || 'Done';
+        document.getElementById('toast').classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => document.getElementById('toast').classList.remove('show'), 3500);
+    }
+
+    function hideToast() {
+        document.getElementById('toast').classList.remove('show');
+        clearTimeout(toastTimeout);
+    }
+
+    // ─── INIT ───────────────────────────────────────────
+    // Ensure TF dropdown exists
+    if (!document.getElementById('tfSelect')) {
+        const sel = document.createElement('select');
+        sel.id = 'tfSelect';
+        sel.style.display = 'none';
+        sel.innerHTML = '<option value="5">5 min</option><option value="15">15 min</option>';
+        document.body.appendChild(sel);
+    }
+    document.getElementById('tfSelect').value = '5';
+
+    loadScreener();
+    updateBudget();
+    toggleBrokerFields();
+    console.log('⚡ Jarvis Algo · All Stocks page added');
+</script>
+
+</body>
+</html>
