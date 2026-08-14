@@ -3,7 +3,6 @@ uvicorn
 pandas
 tradingview-screener
 tvscreener==0.4.0
-python
 yfinance
 pyotp
 cryptography
