@@ -1,13 +1,3 @@
 fastapi
 uvicorn
 pandas
-tradingview-screener
-tvscreener==0.4.0
-yfinance
-pyotp
-cryptography
-requests
-websocket-client==1.6.1
-python-dotenv
-pydantic==2.5.0
-httpx==0.25.0
