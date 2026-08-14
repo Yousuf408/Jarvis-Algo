@@ -3,12 +3,11 @@ uvicorn
 pandas
 tradingview-screener
 tvscreener==0.4.0
-python-multipart
 yfinance
 pyotp
 cryptography
 requests
-angel-one==1.0.6
+angel-one
 websocket-client==1.6.1
 python-dotenv
 pydantic==2.5.0
