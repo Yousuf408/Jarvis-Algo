@@ -7,7 +7,6 @@ yfinance
 pyotp
 cryptography
 requests
-angel-one
 websocket-client==1.6.1
 python-dotenv
 pydantic==2.5.0
