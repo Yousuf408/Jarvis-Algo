@@ -48,20 +48,44 @@ def fetch_tradingview_stocks():
         "sort": {"sortBy": "market_cap_basic", "sortOrder": "desc"},
     }
 
+    # ─── UPDATED HEADERS (More realistic browser headers) ───
     headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://www.tradingview.com/",
+        "Origin": "https://www.tradingview.com",
+        "Connection": "keep-alive",
+        "Cache-Control": "no-cache",
         "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
     }
 
     try:
         print("🔄 Fetching fresh data from TradingView...")
-        resp = requests.post(TV_SCAN_URL, json=payload, headers=headers, timeout=30)
+        
+        # Add small delay to avoid rate limiting
+        time.sleep(1)
+        
+        resp = requests.post(TV_SCAN_URL, json=payload, headers=headers, timeout=60)
         resp.raise_for_status()
         body = resp.json()
+        
+    except requests.exceptions.Timeout:
+        print("⏰ TradingView timeout - retrying...")
+        time.sleep(2)
+        try:
+            resp = requests.post(TV_SCAN_URL, json=payload, headers=headers, timeout=60)
+            resp.raise_for_status()
+            body = resp.json()
+        except Exception as e:
+            print(f"❌ TV scan failed on retry: {e}")
+            with _tv_scan_lock:
+                return _tv_scan_cache
+                
     except Exception as e:
         print(f"❌ TV scan failed: {e}")
         with _tv_scan_lock:
-            return _tv_scan_cache  # Return stale cache
+            return _tv_scan_cache
 
     # Parse results
     rows = []
