@@ -10,6 +10,6 @@ cryptography
 requests
 angel-one==1.0.6
 websocket-client==1.6.1
-python-dotenv==1.0.0
+python-dotenv
 pydantic==2.5.0
 httpx==0.25.0
