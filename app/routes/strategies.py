@@ -114,4 +114,13 @@ def get_big_players(budget: int = 100000, parts: int = 4):
     pass
 
 @router.get("/api/strategies/advanceorb/refresh")
-def refresh_
+def refresh_advance_orb(tickers: str = "", timeframe: int = 5):
+    # Lightweight refresh using TradingView candles
+    symbols = [s.strip().upper() for s in tickers.split(",") if s.strip()]
+    if not symbols:
+        return {"refreshed": []}
+    
+    tv_candles = batch_tv_opening_candles(symbols, timeframe=int(timeframe))
+    # ... (your existing refresh logic)
+    
+    return {"refreshed": refreshed}
