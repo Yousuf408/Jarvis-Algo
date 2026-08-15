@@ -5,10 +5,32 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import sys
 
-# ─── IMPORT from backend folder ───
+# ================================================================
+# 🔄 UPDATED IMPORT: from backend/stock_filter to tv/screener
+# ================================================================
 try:
-    from backend.stock_filter import get_stocks_for_frontend
-    print("✅ stock_filter imported from backend folder")
+    # OLD: from backend.stock_filter import get_stocks_for_frontend
+    # NEW: Import from your new tv folder
+    from tv.screener import fetch_tradingview_stocks
+    print("✅ tv/screener imported successfully")
+    
+    # Define a wrapper function to match your frontend's expected format
+    def get_stocks_for_frontend():
+        stocks = fetch_tradingview_stocks()
+        return {
+            "timestamp": "2026-01-01T00:00:00",  # Or use datetime.now().isoformat()
+            "count": len(stocks),
+            "data": [
+                {
+                    "name": s["name"],
+                    "price": s["close"],
+                    "change": s["change"],
+                    "volume": s["volume"]
+                }
+                for s in stocks
+            ]
+        }
+        
 except ImportError as e:
     print(f"❌ Import error: {e}")
     def get_stocks_for_frontend():
@@ -19,6 +41,9 @@ except ImportError as e:
             "error": f"Import error: {str(e)}"
         }
 
+# ================================================================
+# APP SETUP
+# ================================================================
 app = FastAPI()
 
 # ─── CORS ──────────────────────────────────────────────
@@ -76,11 +101,11 @@ async def debug_tradingview():
 async def test_import():
     """Test if stock_filter is imported correctly"""
     try:
-        from backend.stock_filter import get_stocks_for_frontend
+        # For this test, we keep the wrapper function available
         test_result = get_stocks_for_frontend()
         return {
             "status": "success",
-            "message": "stock_filter imported and function called",
+            "message": "Imported and function called",
             "count": test_result.get("count", 0)
         }
     except Exception as e:
