@@ -1,84 +1,111 @@
-"""
-TradingView Stock Screener - Fetches NSE stocks with filters.
-"""
+# tv/screener.py
+import requests
 import time
 import threading
-import requests
+from datetime import datetime
+import json
 
-# ================================================================
-# CONSTANTS
-# ================================================================
-PRICE_MIN = 200
-PRICE_MAX = 4000
-GAP_THRESHOLD = 2.0
-MARKET_CAP_MIN = 41_000_000_000  # 41 Billion INR
+# ─── TradingView Scanner ─────────────────────────────────────
 TV_SCAN_URL = "https://scanner.tradingview.com/india/scan"
+TV_SCAN_TTL = 600  # 10 minutes cache
+_tv_scan_lock = threading.Lock()
+_tv_scan_cache = []
+_tv_scan_cached_at = 0.0
 
-# Caching
-SCAN_CACHE = []
-SCAN_CACHE_TIME = 0.0
-SCAN_CACHE_LOCK = threading.Lock()
-SCAN_TTL = 600  # 10 minutes
 
-# ================================================================
-# SCANNER FUNCTION
-# ================================================================
-
-def fetch_tradingview_stocks() -> list[dict]:
+def fetch_tradingview_stocks():
     """
-    Fetch NSE stocks from TradingView scanner.
-    
-    Filters: 
-        - Exchange: NSE
-        - Type: Stock
-        - Price: 200 to 4000 INR
-        - Market Cap: > 41 Billion INR
-    
-    Returns: List of dicts with keys: name, close, change, gap, volume, 
-             relative_volume, market_cap_basic, sector
+    Fetch NSE stocks from TradingView scanner with filters:
+    - Exchange: NSE
+    - Price: 200 to 4000
+    - Market Cap: > 41,000 Cr
+    - Gap: ≤ 2% (ignored)
     """
+    global _tv_scan_cache, _tv_scan_cached_at
+
+    # Check cache first
     now = time.time()
-    with SCAN_CACHE_LOCK:
-        if SCAN_CACHE and (now - SCAN_CACHE_TIME) < SCAN_TTL:
-            return SCAN_CACHE
+    with _tv_scan_lock:
+        if _tv_scan_cache and (now - _tv_scan_cached_at) < TV_SCAN_TTL:
+            print(f"📦 Returning cached data ({len(_tv_scan_cache)} stocks)")
+            return _tv_scan_cache
 
+    # Build the scan query
     payload = {
         "symbols": {"tickers": [], "query": {"types": []}},
         "columns": [
-            "name", "close", "change", "gap", 
-            "volume", "relative_volume_10d_calc", "market_cap_basic", "sector"
+            "name", "description", "close", "change", "gap",
+            "volume", "relative_volume_10d_calc", "market_cap_basic",
+            "sector", "open", "high", "low", "change_from_open"
         ],
         "filter": [
             {"left": "type", "operation": "equal", "right": "stock"},
             {"left": "exchange", "operation": "equal", "right": "NSE"},
-            {"left": "close", "operation": "greater", "right": PRICE_MIN},
-            {"left": "close", "operation": "less", "right": PRICE_MAX},
-            {"left": "market_cap_basic", "operation": "greater", "right": MARKET_CAP_MIN},
+            {"left": "close", "operation": "greater", "right": 200},
+            {"left": "close", "operation": "less", "right": 4000},
+            {"left": "market_cap_basic", "operation": "greater", "right": 41000000000},
         ],
         "sort": {"sortBy": "market_cap_basic", "sortOrder": "desc"},
     }
 
+    # ─── UPDATED HEADERS (More realistic browser headers) ───
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://www.tradingview.com/",
+        "Origin": "https://www.tradingview.com",
+        "Connection": "keep-alive",
+        "Cache-Control": "no-cache",
+        "Content-Type": "application/json",
+    }
+
     try:
-        resp = requests.post(TV_SCAN_URL, json=payload, timeout=30)
+        print("🔄 Fetching fresh data from TradingView...")
+        
+        # Add small delay to avoid rate limiting
+        time.sleep(1)
+        
+        resp = requests.post(TV_SCAN_URL, json=payload, headers=headers, timeout=60)
         resp.raise_for_status()
         body = resp.json()
+        
+    except requests.exceptions.Timeout:
+        print("⏰ TradingView timeout - retrying...")
+        time.sleep(2)
+        try:
+            resp = requests.post(TV_SCAN_URL, json=payload, headers=headers, timeout=60)
+            resp.raise_for_status()
+            body = resp.json()
+        except Exception as e:
+            print(f"❌ TV scan failed on retry: {e}")
+            with _tv_scan_lock:
+                return _tv_scan_cache
+                
     except Exception as e:
-        print(f"⚠️ TV Scan failed: {e}")
-        with SCAN_CACHE_LOCK:
-            return SCAN_CACHE
+        print(f"❌ TV scan failed: {e}")
+        with _tv_scan_lock:
+            return _tv_scan_cache
 
+    # Parse results
     rows = []
     for item in body.get("data", []):
         d = item.get("d") or []
-        if len(d) < 7: 
+        if len(d) < 12:
             continue
+
         name = str(d[0] or "").strip().upper()
         close = d[2]
+
         if not name or not isinstance(close, (int, float)) or close <= 0:
             continue
+
         gap = float(d[4]) if isinstance(d[4], (int, float)) else 0.0
-        if abs(gap) >= GAP_THRESHOLD:
+
+        # Skip gap-up/down beyond 2%
+        if abs(gap) >= 2.0:
             continue
+
         rows.append({
             "name": name,
             "close": float(close),
@@ -86,12 +113,39 @@ def fetch_tradingview_stocks() -> list[dict]:
             "gap": gap,
             "volume": float(d[5]) if isinstance(d[5], (int, float)) else 0,
             "relative_volume": float(d[6]) if isinstance(d[6], (int, float)) else 0.0,
-            "market_cap_basic": float(d[7]) if len(d) > 7 and isinstance(d[7], (int, float)) else 0,
-            "sector": str(d[8]) if len(d) > 8 and d[8] else "N/A",
+            "market_cap_basic": float(d[7]) if isinstance(d[7], (int, float)) else 0,
+            "sector": str(d[8]) if d[8] else "N/A",
+            "open": float(d[9]) if len(d) > 9 and isinstance(d[9], (int, float)) else None,
+            "high": float(d[10]) if len(d) > 10 and isinstance(d[10], (int, float)) else None,
+            "low": float(d[11]) if len(d) > 11 and isinstance(d[11], (int, float)) else None,
         })
 
-    with SCAN_CACHE_LOCK:
-        SCAN_CACHE = rows
-        SCAN_CACHE_TIME = time.time()
-    
+    # Sort by market cap
+    rows.sort(key=lambda r: -r["market_cap_basic"])
+
+    # Cache the results
+    with _tv_scan_lock:
+        _tv_scan_cache = rows
+        _tv_scan_cached_at = time.time()
+
+    print(f"✅ Fetched {len(rows)} NSE stocks from TradingView")
     return rows
+
+
+def get_stocks_for_frontend():
+    """Get stocks data formatted for frontend display"""
+    stocks = fetch_tradingview_stocks()
+
+    return {
+        "timestamp": datetime.now().isoformat(),
+        "count": len(stocks),
+        "data": [
+            {
+                "name": s["name"],
+                "price": s["close"],
+                "change": s["change"],
+                "volume": s["volume"]
+            }
+            for s in stocks
+        ]
+    }
